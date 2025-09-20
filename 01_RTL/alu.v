@@ -21,7 +21,12 @@ module alu #(
     localparam S_BUSY = 2'b01;
     localparam S_DONE = 2'b10;
 
-/*--------------------------------------------------------- registers ---------------------------------------------------*/
+    localparam C_1 = 16'shff55;
+    localparam C_2 = 16'sh0009;
+
+    integer i;
+
+/*--------------------------------------------------- registers and wires---------------------------------------------------*/
 
     reg output_valid_r;
     reg output_busy_r;
@@ -30,12 +35,24 @@ module alu #(
     reg [DATA_W-1:0] o_data_r;
     reg signed [DATA_W-1:0] signed_o_data_r;
 
+    // 0000: sum
     wire signed [DATA_W:0] sum_w = i_data_a + i_data_b;
+    // 0001: sub
     wire signed [DATA_W:0] diff_w = i_data_a - i_data_b;
+    // 0010: mac
     wire signed [35:0] data_acc_w = data_acc_r;
     wire signed [36:0] mul_w = i_data_a * i_data_b;
     wire signed [36:0] mac_w = mul_w + data_acc_w;
-    wire signed [16:0] rounded_sum_w = (mac_w + (1 <<< 9)) >>> 10;
+    wire signed [16:0] rounded_mac_w = (mac_w + (1 <<< 9)) >>> 10;
+    // 0011: sin
+    wire signed [96:0] sin_x1_temp_w = $signed(i_data_a);
+    wire signed [96:0] sin_x3_temp_w = $signed(C_1) * $signed(i_data_a) * $signed(i_data_a) * $signed(i_data_a);
+    wire signed [96:0] sin_x1_w = sin_x1_temp_w <<< 80;
+    wire signed [96:0] sin_x3_w = sin_x3_temp_w <<< 32;
+    wire signed [96:0] sin_x5_w = $signed(C_2) * $signed(i_data_a) * $signed(i_data_a) * $signed(i_data_a) * $signed(i_data_a) * $signed(i_data_a);
+    wire signed [96:0] sin_w = sin_x1_w + sin_x3_w + sin_x5_w;
+    wire signed [16:0] rounded_sin_w = (sin_w + (97'sd1 <<< 79)) >>> 80;
+
     
     assign o_out_valid = output_valid_r;
     assign o_busy = output_busy_r;
@@ -71,7 +88,18 @@ module alu #(
                     end
                     4'b0010: begin
                         data_acc_r <= long_overflow_check(mac_w);
-                        signed_o_data_r <= overflow_check(rounded_sum_w);
+                        signed_o_data_r <= overflow_check(rounded_mac_w);
+                        output_valid_r <= 1;
+                    end
+                    4'b0011: begin
+                        signed_o_data_r <= overflow_check(rounded_sin_w);
+                        output_valid_r <= 1;
+                    end
+                    4'b0100: begin
+                        o_data_r[15] <= i_data_a[15];
+                        for (i = 14; i >= 0; i = i - 1) begin
+                            o_data_r[i] = i_data_a[i + 1] ^ i_data_a[i];
+                        end
                         output_valid_r <= 1;
                     end
                     default: begin
