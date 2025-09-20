@@ -26,12 +26,16 @@ module alu #(
     reg output_valid_r;
     reg output_busy_r;
     reg [1:0] state_r;
-    reg [DATA_W-1:0] acc_r;
+    reg [35:0] data_acc_r;
     reg [DATA_W-1:0] o_data_r;
     reg signed [DATA_W-1:0] signed_o_data_r;
 
     wire signed [DATA_W:0] sum_w = i_data_a + i_data_b;
     wire signed [DATA_W:0] diff_w = i_data_a - i_data_b;
+    wire signed [35:0] data_acc_w = data_acc_r;
+    wire signed [36:0] mul_w = i_data_a * i_data_b;
+    wire signed [36:0] mac_w = mul_w + data_acc_w;
+    wire signed [16:0] rounded_sum_w = (mac_w + (1 <<< 9)) >>> 10;
     
     assign o_out_valid = output_valid_r;
     assign o_busy = output_busy_r;
@@ -49,7 +53,7 @@ module alu #(
         if (!i_rst_n) begin
             output_valid_r <= 0;
             output_busy_r <= 0;
-            acc_r <= 0;
+            data_acc_r <= 0;
             o_data_r <= 0;
             signed_o_data_r <= 0;
             state_r <= S_IDLE;
@@ -63,6 +67,11 @@ module alu #(
                     end
                     4'b0001: begin
                         signed_o_data_r <= overflow_check(diff_w);
+                        output_valid_r <= 1;
+                    end
+                    4'b0010: begin
+                        data_acc_r <= long_overflow_check(mac_w);
+                        signed_o_data_r <= overflow_check(rounded_sum_w);
                         output_valid_r <= 1;
                     end
                     default: begin
@@ -87,14 +96,32 @@ module alu #(
         input signed [DATA_W:0] i_data;
 
         begin
-            if (i_data > 17'sh0FFFF) begin
-                overflow_check = 17'sh0FFFF;
+            if (i_data > 17'sd32767) begin
+                overflow_check = 16'sh7FFF;
             end
-            else if (i_data < -17'sh10000) begin
-                overflow_check = -17'sh10000;
+            else if (i_data < -17'sd32768) begin
+                overflow_check = -16'sh8000;
             end
             else begin
                 overflow_check = i_data[15:0];
+            end
+        end
+        
+    endfunction
+
+    function signed [35:0] long_overflow_check;
+
+        input signed [36:0] i_data;
+
+        begin
+            if (i_data > 37'sd34359738367) begin
+                long_overflow_check = 36'sh7FFFFFFFF;
+            end
+            else if (i_data < -37'sd34359738368) begin
+                long_overflow_check = -36'sh800000000;
+            end
+            else begin
+                long_overflow_check = i_data[35:0];
             end
         end
         
