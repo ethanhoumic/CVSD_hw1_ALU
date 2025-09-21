@@ -119,6 +119,10 @@ module alu #(
                         output_valid_r <= 0;
                         output_busy_r <= 1;
                     end
+                    4'b0110: begin
+                        signed_o_data_r <= (i_data_b == 16) ? i_data_a : {2{i_data_a}}[i_data_b +: 16];
+                        output_valid_r <= 1;
+                    end
                     default: begin
                         output_valid_r <= output_valid_r;
                         signed_o_data_r <= signed_o_data_r;
