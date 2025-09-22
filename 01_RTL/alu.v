@@ -17,9 +17,10 @@ module alu #(
     output        [DATA_W-1:0] o_data
 );
 
-    localparam S_IDLE      = 2'b00;
-    localparam S_BUSY_LRCW = 2'b01;
-    localparam S_DONE      = 2'b10;
+    localparam S_IDLE        = 2'b00;
+    localparam S_BUSY_LRCW   = 2'b01;
+    localparam S_BUSY_INPUT  = 2'b10;
+    localparam S_BUSY_OUTPUT = 2'b11;
 
     localparam C_1 = 16'shff55;
     localparam C_2 = 16'sh0009;
@@ -30,10 +31,11 @@ module alu #(
 
     reg output_valid_r;
     reg output_busy_r;
+    reg [3:0] matrix_counter;
     reg [4:0] cpop_r;
     reg [1:0] state_r;
     reg [35:0] data_acc_r;
-    reg [DATA_W-1:0] o_data_r;
+    reg [1:0] matrix_mem_r [0:7][0:7];
     reg signed [DATA_W-1:0] signed_o_data_r;
 
     // 0000: sum
@@ -69,6 +71,7 @@ module alu #(
 
     always @(posedge i_clk or negedge i_rst_n) begin
         if (!i_rst_n) begin
+            matrix_counter <= 0;
             cpop_r <= 0;
             output_valid_r <= 0;
             output_busy_r <= 0;
@@ -85,6 +88,34 @@ module alu #(
             else begin
                 signed_o_data_r <= {signed_o_data_r[14:0], !signed_o_data_r[15]};
                 cpop_r <= cpop_r - 1;
+            end
+        end
+        else if (state_r == S_BUSY_INPUT && i_in_valid) begin
+            for (i = 0; i < 8; i = i + 1) begin
+                matrix_mem_r[i][matrix_counter] <= i_data_a[(i<<1)+:2];
+            end
+            if (matrix_counter == 7) begin
+                matrix_counter <= 0;
+                output_busy_r <= 1;
+                state_r <= S_BUSY_OUTPUT;
+            end
+            else begin
+                matrix_counter <= matrix_counter + 1;
+                state_r <= state_r;
+            end
+        end
+        else if (state_r == S_BUSY_OUTPUT) begin
+            if (matrix_counter == 8) begin
+                matrix_counter <= 0;
+                state_r <= S_IDLE;
+                output_valid_r <= 0;
+                output_busy_r <= 0;
+            end
+            else begin
+                signed_o_data_r <= {matrix_mem_r[7-matrix_counter][0], matrix_mem_r[7-matrix_counter][1], matrix_mem_r[7-matrix_counter][2], matrix_mem_r[7-matrix_counter][3], 
+                matrix_mem_r[7-matrix_counter][4], matrix_mem_r[7-matrix_counter][5], matrix_mem_r[7-matrix_counter][6], matrix_mem_r[7-matrix_counter][7]};
+                matrix_counter <= matrix_counter + 1;
+                output_valid_r <= 1;
             end
         end
         else if (i_in_valid) begin
@@ -133,6 +164,14 @@ module alu #(
                         signed_o_data_r <= reverse_match4(i_data_a, i_data_b);
                         output_valid_r <= 1;
                     end
+                    4'b1001: begin
+                        state_r <= S_BUSY_INPUT;
+                        for (i = 0; i < 8; i = i + 1) begin
+                            matrix_mem_r[i][0] <= i_data_a[(i<<1)+:2];
+                        end
+                        matrix_counter <= matrix_counter + 1;
+                        output_valid_r <= 0;
+                    end
                     default: begin
                         output_valid_r <= output_valid_r;
                         signed_o_data_r <= signed_o_data_r;
@@ -143,7 +182,6 @@ module alu #(
         else if (!i_in_valid) begin
             output_valid_r <= 0;
             signed_o_data_r <= signed_o_data_r;
-            o_data_r <= o_data_r;
         end
     end
 
