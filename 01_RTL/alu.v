@@ -53,6 +53,8 @@ module alu #(
     wire signed [96:0] sin_x5_w = $signed(C_2) * $signed(i_data_a) * $signed(i_data_a) * $signed(i_data_a) * $signed(i_data_a) * $signed(i_data_a);
     wire signed [96:0] sin_w = sin_x1_w + sin_x3_w + sin_x5_w;
     wire signed [16:0] rounded_sin_w = (sin_w + (97'sd1 <<< 79)) >>> 80;
+    // 0110: right rotation
+    wire [31:0] i_data_a_con = {2{i_data_a}};
     
     assign o_out_valid = output_valid_r;
     assign o_busy = output_busy_r;
@@ -120,7 +122,7 @@ module alu #(
                         output_busy_r <= 1;
                     end
                     4'b0110: begin
-                        signed_o_data_r <= (i_data_b == 16) ? i_data_a : {2{i_data_a}}[i_data_b +: 16];
+                        signed_o_data_r <= (i_data_b >= 16) ? i_data_a : i_data_a[i_data_b[3:0] +: 16];
                         output_valid_r <= 1;
                     end
                     4'b0111: begin
