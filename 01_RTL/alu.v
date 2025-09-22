@@ -129,6 +129,10 @@ module alu #(
                         signed_o_data_r <= (count_leading_zero(i_data_a));
                         output_valid_r <= 1;
                     end
+                    4'b1000: begin
+                        signed_o_data_r <= reverse_match4(i_data_a, i_data_b);
+                        output_valid_r <= 1;
+                    end
                     default: begin
                         output_valid_r <= output_valid_r;
                         signed_o_data_r <= signed_o_data_r;
@@ -206,6 +210,21 @@ module alu #(
             end
         end
         
+    endfunction
+
+    function [15:0] reverse_match4;
+
+        input [15:0] i_data_a;
+        input [15:0] i_data_b;
+        integer i;
+
+        begin
+            for (i = 0; i < 13; i = i + 1) begin
+                reverse_match4[i] = (i_data_a[i+:4] == i_data_b[15-i-:4]);
+            end
+            reverse_match4[15:13] = 3'b000;
+        end
+
     endfunction
 
 endmodule
