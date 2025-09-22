@@ -123,6 +123,10 @@ module alu #(
                         signed_o_data_r <= (i_data_b == 16) ? i_data_a : {2{i_data_a}}[i_data_b +: 16];
                         output_valid_r <= 1;
                     end
+                    4'b0111: begin
+                        signed_o_data_r <= (count_leading_zero(i_data_a));
+                        output_valid_r <= 1;
+                    end
                     default: begin
                         output_valid_r <= output_valid_r;
                         signed_o_data_r <= signed_o_data_r;
@@ -175,13 +179,28 @@ module alu #(
         
     endfunction
 
-    function [5:0] cpop_count;
+    function [4:0] cpop_count;
+
         input [DATA_W-1:0] i_data;
         integer i;
         begin
             cpop_count = 0;
             for (i = 0; i < 16; i = i + 1) begin
                 cpop_count = cpop_count + i_data[i];
+            end
+        end
+        
+    endfunction
+
+    function [4:0] count_leading_zero;
+        
+        input [15:0] i_data;
+        integer i;
+        begin
+            count_leading_zero = 0;
+            count_loop: for (i = 15; i >= 0; i = i - 1) begin
+                if (!i_data_a[i]) count_leading_zero = count_leading_zero + 1;
+                else disable count_loop;
             end
         end
         
