@@ -22,7 +22,7 @@ module alu #(
     localparam S_BUSY_INPUT  = 2'b10;
     localparam S_BUSY_OUTPUT = 2'b11;
 
-    localparam C_1 = 16'shff55;
+    localparam C_1 = 16'sh00ab;
     localparam C_2 = 16'sh0009;
 
     integer i;
@@ -50,11 +50,11 @@ module alu #(
     // 0011: sin
     wire signed [96:0] sin_x1_temp_w = $signed(i_data_a);
     wire signed [96:0] sin_x3_temp_w = $signed(C_1) * $signed(i_data_a) * $signed(i_data_a) * $signed(i_data_a);
-    wire signed [96:0] sin_x1_w = sin_x1_temp_w <<< 80;
-    wire signed [96:0] sin_x3_w = sin_x3_temp_w <<< 32;
+    wire signed [96:0] sin_x1_w = sin_x1_temp_w <<< 50;
+    wire signed [96:0] sin_x3_w = sin_x3_temp_w <<< 20;
     wire signed [96:0] sin_x5_w = $signed(C_2) * $signed(i_data_a) * $signed(i_data_a) * $signed(i_data_a) * $signed(i_data_a) * $signed(i_data_a);
-    wire signed [96:0] sin_w = sin_x1_w + sin_x3_w + sin_x5_w;
-    wire signed [16:0] rounded_sin_w = (sin_w + (97'sd1 <<< 79)) >>> 80;
+    wire signed [96:0] sin_w = sin_x1_w - sin_x3_w + sin_x5_w;
+    wire signed [16:0] rounded_sin_w = (sin_w + (97'sd1 <<< 49)) >>> 50;
     // 0110: right rotation
     wire [31:0] i_data_a_con = {2{i_data_a}};
     
