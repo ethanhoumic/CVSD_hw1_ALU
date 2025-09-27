@@ -25,7 +25,7 @@ module alu #(
     localparam C_1 = 16'sh00ab;
     localparam C_2 = 16'sh0009;
 
-    integer i;
+    integer i, j;
 
 /*--------------------------------------------------- registers and wires---------------------------------------------------*/
 
@@ -78,6 +78,11 @@ module alu #(
             data_acc_r <= 0;
             signed_o_data_r <= 0;
             state_r <= S_IDLE;
+            for (i = 0; i < 8; i = i + 1) begin
+                for (j = 0; j < 8; j = j + 1) begin
+                    matrix_mem_r[i][j] <= 0;
+                end
+            end
         end
         else if (state_r == S_BUSY_LRCW) begin
             if (cpop_r == 0) begin
@@ -187,7 +192,7 @@ module alu #(
 
 /*--------------------------------------------------------- function ----------------------------------------------------*/
 
-    function signed [DATA_W-1:0] overflow_check;
+    function automatic signed [DATA_W-1:0] overflow_check;
 
         input signed [DATA_W:0] i_data;
 
@@ -205,7 +210,7 @@ module alu #(
         
     endfunction
 
-    function signed [35:0] long_overflow_check;
+    function automatic signed [35:0] long_overflow_check;
 
         input signed [36:0] i_data;
 
@@ -223,7 +228,7 @@ module alu #(
         
     endfunction
 
-    function [4:0] cpop_count;
+    function automatic [4:0] cpop_count;
 
         input [DATA_W-1:0] i_data;
         integer i;
@@ -236,21 +241,28 @@ module alu #(
         
     endfunction
 
-    function [4:0] count_leading_zero;
+    function automatic [4:0] count_leading_zero;
         
         input [15:0] i_data;
+        reg stop;
         integer i;
         begin
+            stop = 0;
             count_leading_zero = 0;
-            count_loop: for (i = 15; i >= 0; i = i - 1) begin
-                if (!i_data_a[i]) count_leading_zero = count_leading_zero + 1;
-                else disable count_loop;
+            for (i = 15; i >= 0; i = i - 1) begin
+                if (!stop) begin
+                    if (!i_data_a[i]) count_leading_zero = count_leading_zero + 1;
+                    else stop = 1;
+                end
+                else begin
+                    
+                end
             end
         end
         
     endfunction
 
-    function [15:0] reverse_match4;
+    function automatic [15:0] reverse_match4;
 
         input [15:0] i_data_a;
         input [15:0] i_data_b;
