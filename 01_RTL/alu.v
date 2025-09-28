@@ -158,7 +158,7 @@ module alu #(
                         output_busy_r <= 1;
                     end
                     4'b0110: begin
-                        signed_o_data_r <= (i_data_b >= 16) ? i_data_a : i_data_a[i_data_b[3:0] +: 16];
+                        signed_o_data_r <= (i_data_b >= 16) ? i_data_a : i_data_a_con[i_data_b[3:0] +: 16];
                         output_valid_r <= 1;
                     end
                     4'b0111: begin
