@@ -164,7 +164,7 @@ module alu #(
                 S_BUSY_INPUT: begin
                     if (i_in_valid) begin
                         for (i = 0; i < 8; i = i + 1) begin
-                            matrix_mem_r[i][matrix_counter] <= i_data_a[(i<<1)+:2];
+                            matrix_mem_r[i][matrix_counter[2:0]] <= i_data_a[(i<<1)+:2];
                         end
                         if (matrix_counter == 7) begin
                             matrix_counter <= 0;
@@ -179,10 +179,10 @@ module alu #(
                 S_BUSY_OUTPUT: begin
                     if (matrix_counter < 8) begin
                         signed_o_data_r <= {
-                            matrix_mem_r[7-matrix_counter][0], matrix_mem_r[7-matrix_counter][1],
-                            matrix_mem_r[7-matrix_counter][2], matrix_mem_r[7-matrix_counter][3],
-                            matrix_mem_r[7-matrix_counter][4], matrix_mem_r[7-matrix_counter][5],
-                            matrix_mem_r[7-matrix_counter][6], matrix_mem_r[7-matrix_counter][7]
+                            matrix_mem_r[7-matrix_counter[2:0]][0], matrix_mem_r[7-matrix_counter[2:0]][1],
+                            matrix_mem_r[7-matrix_counter[2:0]][2], matrix_mem_r[7-matrix_counter[2:0]][3],
+                            matrix_mem_r[7-matrix_counter[2:0]][4], matrix_mem_r[7-matrix_counter[2:0]][5],
+                            matrix_mem_r[7-matrix_counter[2:0]][6], matrix_mem_r[7-matrix_counter[2:0]][7]
                         };
                         matrix_counter  <= matrix_counter + 1;
                         output_valid_r  <= 1;
@@ -243,7 +243,7 @@ module alu #(
         begin
             cpop_count = 0;
             for (i = 0; i < 16; i = i + 1) begin
-                cpop_count = cpop_count + i_data[i];
+                cpop_count = cpop_count + (i_data[i] ? 5'd1 : 5'd0);
             end
         end
         
