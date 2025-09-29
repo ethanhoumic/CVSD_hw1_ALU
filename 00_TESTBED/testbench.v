@@ -77,6 +77,12 @@
     `define ODATA  "../00_TESTBED/pattern/INST9_O.dat"
     `define SEQ_LEN 60
     `define PAT_LEN 40
+`elsif IX
+    `define VDATA  "../00_TESTBED/pattern/MY_MIX_VALID.dat"
+    `define IDATA  "../00_TESTBED/pattern/MY_INSTMIX_I.dat"
+    `define ODATA  "../00_TESTBED/pattern/MY_INSTMIX_O.dat"
+    `define SEQ_LEN 1574
+    `define PAT_LEN 1024
 `else
     `define VDATA  "../00_TESTBED/pattern/VALID.dat"
     `define IDATA  "../00_TESTBED/pattern/INST0_I.dat"

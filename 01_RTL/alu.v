@@ -35,7 +35,7 @@ module alu #(
     reg [4:0] cpop_r;
     reg [1:0] state_r;
     reg [1:0] next_state_r;
-    reg [35:0] data_acc_r;
+    reg signed [35:0] data_acc_r;
     reg [1:0] matrix_mem_r [0:7][0:7];
     reg signed [DATA_W-1:0] signed_o_data_r;
 
@@ -47,7 +47,7 @@ module alu #(
     wire signed [35:0] data_acc_w = data_acc_r;
     wire signed [36:0] mul_w = i_data_a * i_data_b;
     wire signed [36:0] mac_w = mul_w + data_acc_w;
-    wire signed [16:0] rounded_mac_w = (mac_w + (1 <<< 9)) >>> 10;
+    wire signed [15:0] rounded_mac_w = mac_overflow_check((mac_w + (1 <<< 9)) >>> 10);
     // 0011: sin
     wire signed [96:0] sin_x1_temp_w = $signed(i_data_a);
     wire signed [96:0] sin_x3_temp_w = $signed(C_1) * $signed(i_data_a) * $signed(i_data_a) * $signed(i_data_a);
@@ -124,7 +124,7 @@ module alu #(
                             4'b0001: signed_o_data_r <= overflow_check(diff_w);
                             4'b0010: begin
                                 data_acc_r       <= long_overflow_check(mac_w);
-                                signed_o_data_r  <= overflow_check(rounded_mac_w);
+                                signed_o_data_r  <= rounded_mac_w;
                             end
                             4'b0011: signed_o_data_r <= overflow_check(rounded_sin_w);
                             4'b0100: begin
@@ -213,6 +213,24 @@ module alu #(
             end
             else begin
                 overflow_check = i_data[15:0];
+            end
+        end
+        
+    endfunction
+
+    function automatic signed [DATA_W-1:0] mac_overflow_check;
+
+        input signed [27:0] i_data;
+
+        begin
+            if (i_data > 17'sd32767) begin
+                mac_overflow_check = 16'sh7FFF;
+            end
+            else if (i_data < -17'sd32768) begin
+                mac_overflow_check = -16'sh8000;
+            end
+            else begin
+                mac_overflow_check = i_data[15:0];
             end
         end
         
